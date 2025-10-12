@@ -1,0 +1,128 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+build/
+dist/
+*.local
+
+# Environment files
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Personal/unrelated files and directories
+AppData/
+Contacts/
+Desktop/
+Documents/
+Downloads/
+Favorites/
+Links/
+Music/
+Pictures/
+Videos/
+Saved Games/
+Searches/
+OneDrive/
+OneDriveCloudTemp/
+Career/
+English II/
+Fitness/
+HackGT 12/
+Hackathon leftovers/
+History/
+Hytech/
+IndieLibrary/
+Intro to CS/
+LinAlg/
+Microsoft Copilot Chat Files/
+Physics II/
+Random/
+Side projects/
+portfolio/
+portfolio-1/
+startups/
+dotify/
+dotify-1/
+dotifytesting/
+Attachments/
+*.pptx
+*.docx
+*.pdf
+*.mp4
+*.mov
+*.zip
+*.ino
+*.acsm
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.STEP
+*.regtrans-ms
+*.blf
+*.LibPkg
+NTUSER.DAT*
+.gitconfig
+.python_history
+.lesshst
+.viminfo
+__pycache__/
+.arduinoIDE/
+.chocolatey/
+.cursor/
+.idlerc/
+.matplotlib/
+.platformio/
+.streamlit/
+Application Data/
+Local Settings/
+Cookies/
+My Documents/
+NetHood/
+PrintHood/
+Recent/
+SendTo/
+Start Menu/
+Templates/
+HTLogo.png
+pfp.jpg
+*.py
+Untitled-*
+hello.py
+media/
+supabase-nextjs/
+indielibrary/
+miktex-console.lock
+ntuser.dat.LOG1
+ntuser.dat.LOG2
+ntuser.ini
+.849C9593-D756-4E56-8D6E-42412F2A707B
+

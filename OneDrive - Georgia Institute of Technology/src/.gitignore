@@ -1,0 +1,102 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+build/
+dist/
+*.local
+
+# Environment files
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Personal/unrelated files
+AppData/
+Contacts/
+Desktop/
+Documents/
+Downloads/
+Favorites/
+Links/
+Music/
+Pictures/
+Videos/
+Saved Games/
+Searches/
+OneDrive/
+OneDriveCloudTemp/
+*.pptx
+*.docx
+*.pdf
+*.mp4
+*.mov
+*.zip
+*.ino
+*.acsm
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.STEP
+*.regtrans-ms
+*.blf
+NTUSER.DAT*
+.gitconfig
+.python_history
+.lesshst
+.viminfo
+__pycache__/
+.arduinoIDE/
+.chocolatey/
+.cursor/
+.idlerc/
+.matplotlib/
+.platformio/
+.streamlit/
+Application Data/
+Local Settings/
+Cookies/
+My Documents/
+NetHood/
+PrintHood/
+Recent/
+SendTo/
+Start Menu/
+Templates/
+
+# Keep only project files
+!src/
+!package.json
+!vite.config.ts
+!index.html
+!README.md
+!tsconfig.json
+!tsconfig.node.json
+
