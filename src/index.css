@@ -4,7 +4,8 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background-light: #F5F3EE;
+    --background: 45 24% 94%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -56,6 +57,7 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    --background-light: #0b1120;
   }
 }
 
@@ -64,12 +66,19 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased font-sans;
+    background-color: var(--background-light);
+    @apply text-foreground antialiased font-sans;
+  }
+
+  body.light,
+  [data-theme='light'],
+  .light-mode {
+    background-color: var(--background-light) !important;
   }
   
-  /* Campus feel: clean white background in light mode */
+  /* Campus feel: warm off-white background in light mode */
   :root {
-    --background: 0 0% 100%;
+    --background: 45 24% 94%;
     --radius: 16px;
   }
   
