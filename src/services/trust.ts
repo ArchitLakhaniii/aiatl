@@ -1,23 +1,35 @@
 import type { ProfileHistoryResponse, ProfileTrustSummary, Transaction } from '@/types/trust'
 
-const API_BASE = '/api'
-
-async function fetchJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url)
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`)
-  }
-  return res.json() as Promise<T>
-}
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 export async function getProfileHistory(userId: string, cursor?: string): Promise<ProfileHistoryResponse> {
+  const url = new URL(`/api/profiles/${userId}/history`, API_BASE_URL)
+  if (cursor) {
+    url.searchParams.set('cursor', cursor)
+  }
+
+  let response: Response
   try {
-    const url = new URL(`${API_BASE}/profiles/${userId}/history`, window.location.origin)
-    if (cursor) url.searchParams.set('cursor', cursor)
-    return await fetchJSON<ProfileHistoryResponse>(url.toString())
-  } catch {
+    response = await fetch(url.toString(), {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+  } catch (error) {
+    console.error('Failed to reach profile history endpoint, falling back to mock data.', error)
     return mockProfileHistory(userId, cursor)
   }
+
+  if (response.ok) {
+    return response.json() as Promise<ProfileHistoryResponse>
+  }
+
+  if (response.status === 404) {
+    return mockProfileHistory(userId, cursor)
+  }
+
+  const detail = await response.text()
+  throw new Error(`History request failed (${response.status} ${response.statusText}): ${detail}`)
 }
 
 export async function getProfileSummary(userId: string): Promise<ProfileTrustSummary> {

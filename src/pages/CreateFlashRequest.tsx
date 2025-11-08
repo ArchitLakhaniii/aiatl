@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react"
 import { ArrowRight, ArrowLeft, Flame, ShieldCheck, Sparkles, Star, Tag, Plus } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { detectCategory } from "@/lib/nlp"
+import { api } from "@/lib/api"
+import { toast } from "sonner"
 
 interface RequestForm {
   need: string
@@ -24,6 +26,7 @@ export default function CreateFlashRequest() {
     where: "",
   })
   const [error, setError] = useState<string>("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const words = useMemo(() => {
     const trimmed = form.need.trim()
@@ -63,9 +66,43 @@ export default function CreateFlashRequest() {
     setError("")
   }
 
-  const submit = () => {
-    alert("Request submitted! 🎉")
-    navigate('/smart-ping')
+  const submit = async () => {
+    if (!form.need.trim()) {
+      setError("Tell us what you need before continuing.")
+      return
+    }
+
+    const compiledText = [
+      form.need.trim(),
+      form.quantity ? `Quantity: ${form.quantity}` : null,
+      form.when ? `Timing: ${form.when}` : null,
+      form.where ? `Location: ${form.where}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n")
+
+    setIsSubmitting(true)
+    try {
+      const result = await api.createFlashRequest({
+        text: compiledText,
+        metadata: {
+          category: form.category,
+          quantity: form.quantity,
+          when: form.when,
+          location: form.where,
+          urgency: 1,
+          requireCheckIn: false,
+          source: "CreateFlashRequest",
+        },
+      })
+      toast.success("Flash Request submitted")
+      navigate(`/smart-ping?requestId=${result.id}`)
+    } catch (submissionError) {
+      console.error(submissionError)
+      toast.error("Failed to submit Flash Request")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -253,7 +290,8 @@ export default function CreateFlashRequest() {
               type="button"
               onClick={submit}
               className="mt-4 inline-flex items-center rounded-2xl bg-gradient-to-r from-fuchsia-500 to-rose-500 px-6 py-2.5 font-semibold text-white shadow-[0_10px_24px_rgba(244,63,94,0.35)] transition hover:brightness-110"
-            >
+                disabled={isSubmitting}
+              >
               Submit request
             </button>
           </section>
@@ -289,6 +327,7 @@ export default function CreateFlashRequest() {
                 <button
                   type="button"
                   onClick={step === 3 ? submit : next}
+                  disabled={isSubmitting}
                   className="group inline-flex items-center rounded-2xl bg-[conic-gradient(from_180deg_at_50%_50%,theme(colors.fuchsia.500),theme(colors.rose.500),theme(colors.pink.500),theme(colors.fuchsia.500))] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(244,63,94,0.35)] transition hover:brightness-110 focus:outline-none focus:ring-4 focus:ring-fuchsia-500/30"
                 >
                   {step === 3 ? 'Submit' : 'Next'}

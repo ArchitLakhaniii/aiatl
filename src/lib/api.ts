@@ -26,6 +26,7 @@ export interface Match {
   likelihood: number
   distanceMin: number
   sharedTraits: string[]
+  debug?: any
 }
 
 export interface Listing {
@@ -46,6 +47,32 @@ export interface Flag {
   severity: 'low' | 'medium' | 'high' | 'critical'
   createdAt: string
   status: 'pending' | 'resolved' | 'dismissed'
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init?.headers ?? {}),
+    },
+    ...init,
+  })
+
+  if (!response.ok) {
+    let detail: unknown
+    try {
+      detail = await response.json()
+    } catch {
+      detail = await response.text()
+    }
+    throw new Error(
+      `API request failed (${response.status} ${response.statusText}): ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`,
+    )
+  }
+
+  return response.json() as Promise<T>
 }
 
 // Mock seed data
@@ -102,60 +129,62 @@ type ListingsFilters = {
 
 // Mock API functions
 export const api = {
-  createFlashRequest: async (data: any): Promise<{ success: boolean; id: string; data: any }> => {
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    const requestId = Math.random().toString(36).substr(2, 9)
-    
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`flashRequest_${requestId}`, JSON.stringify(data))
-    }
-    
+  createFlashRequest: async (
+    payload: { text: string; metadata?: Record<string, unknown> },
+  ): Promise<{ success: boolean; id: string; data: any }> => {
+    const body = JSON.stringify({
+      text: payload.text,
+      metadata: payload.metadata ?? {},
+    })
+    const data = await request<{ success: boolean; requestId: string; [key: string]: unknown }>(
+      '/api/flash-requests',
+      {
+        method: 'POST',
+        body,
+      },
+    )
+
     return {
-      success: true,
-      id: requestId,
+      success: Boolean(data?.success),
+      id: data.requestId,
       data,
     }
   },
 
-  getSmartMatches: async (requestId: string): Promise<{ success: boolean; requestId: string; requestData: any; matches: Match[] }> => {
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    
-    let requestData = null
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(`flashRequest_${requestId}`)
-      if (stored) {
-        requestData = JSON.parse(stored)
-      }
-    }
-    
-    const matches: Match[] = mockUsers.slice(0, 6).map((user, index) => ({
-      user,
-      likelihood: 92 - index * 3,
-      distanceMin: 0.3 + index * 0.1,
-      sharedTraits: ['Same major', 'Nearby dorm', 'High rating'],
-    }))
-    
+  getSmartMatches: async (requestId: string): Promise<{ success: boolean; requestId: string; requestData: any; matches: Match[]; debug?: any }> => {
+    const response = await request<{
+      success: boolean
+      requestId: string
+      request: any
+      matches: Array<Match & { debug?: any }>
+      debug?: any
+    }>(`/api/flash-requests/${requestId}/matches`)
+
     return {
-      success: true,
-      requestId,
-      requestData: requestData || {
-        description: 'Sample request description',
-        category: 'Textbooks',
-        urgency: 1,
-        location: 'Student Center',
-        requireCheckIn: false,
-      },
-      matches,
+      success: Boolean(response?.success),
+      requestId: response.requestId,
+      requestData: response.request,
+      matches: response.matches.map((match) => ({
+        user: match.user,
+        likelihood: match.likelihood,
+        distanceMin: match.distanceMin,
+        sharedTraits: match.sharedTraits,
+        debug: match.debug,
+      })),
+      debug: response.debug,
     }
   },
 
   sendPings: async (requestId: string, matchIds: string[], broadcastType?: 'narrow' | 'wide'): Promise<{ success: boolean; pinged: number; broadcastType?: string }> => {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    return {
-      success: true,
-      pinged: matchIds.length,
-      broadcastType,
-    }
+    const data = await request<{
+      success: boolean
+      pinged: number
+      broadcastType?: string
+    }>(`/api/flash-requests/${requestId}/pings`, {
+      method: 'POST',
+      body: JSON.stringify({ matchIds, broadcastType }),
+    })
+    return data
   },
 
   searchListings: async (filters: ListingsFilters = {}) => {
@@ -297,5 +326,14 @@ export const api = {
   submitRating: async (threadId: string, rating: number, comment: string): Promise<{ success: boolean }> => {
     await new Promise((resolve) => setTimeout(resolve, 500))
     return { success: true }
+  },
+
+  seedProfiles: async (limit = 150) => {
+    return request<{ success: boolean; loaded: number; totalProfiles: number }>(
+      `/api/profiles/seed?limit=${limit}`,
+      {
+        method: 'POST',
+      },
+    )
   },
 }

@@ -134,7 +134,23 @@ export function FlashRequestWizardPage() {
     setIsSubmitting(true)
     try {
       const aiCategory = detectCategory(data.description)
-      const result = await api.createFlashRequest({ ...data, category: aiCategory })
+      const compiledText = [
+        data.description.trim(),
+        `Urgency: ${urgencyLabels[data.urgency]}`,
+        `Location: ${data.location}`,
+        `Require Check-In: ${data.requireCheckIn ? 'Yes' : 'No'}`,
+      ].join('\n')
+
+      const result = await api.createFlashRequest({
+        text: compiledText,
+        metadata: {
+          category: aiCategory,
+          urgency: data.urgency,
+          location: data.location,
+          requireCheckIn: data.requireCheckIn,
+          source: 'FlashRequestWizard',
+        },
+      })
       toast.success('Flash Request created successfully!')
       navigate(`/smart-ping?requestId=${result.id}`)
     } catch (error) {

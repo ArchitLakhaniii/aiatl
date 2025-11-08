@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -15,7 +16,9 @@ import {
   Bell,
   CheckCircle2,
   XCircle,
-  Package
+  Package,
+  Tag,
+  X
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import TrustBadge from '@/components/TrustBadge'
@@ -23,6 +26,13 @@ import TransactionsDrawer from '@/components/TransactionsDrawer'
 import { getProfileSummary } from '@/services/trust'
 import type { ProfileTrustSummary } from '@/types/trust'
 import { getOrCreateDM } from '@/services/chat'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface SmartPingMatch {
   id: string
@@ -36,17 +46,149 @@ interface SmartPingMatch {
   likelihood: number
   badges: string[]
   status: 'delivered' | 'accepted' | 'declined' | null
+  debug?: {
+    probability?: number
+    activatedFeatures?: Array<[string, number]>
+    representativeItem?: any
+    sellerProfile?: any
+    source?: string
+  }
 }
+
+type SellerDebugEntry = {
+  id: string
+  name: string
+  probability?: number
+  profile?: any
+  representativeItem?: any
+  source?: string
+  features: Array<[string, number]>
+}
+
+type DebugPopupDescriptor =
+  | {
+      id: string
+      type: 'buyer'
+      title: string
+      payload: any
+    }
+  | {
+      id: string
+      type: 'model'
+      title: string
+      modelSummary: any
+      matches: SmartPingMatch[]
+    }
+  | {
+      id: string
+      type: 'sellers'
+      title: string
+      sellers: SellerDebugEntry[]
+    }
+
+const BuyerDebugPopup = ({ payload }: { payload: any }) => (
+  <pre>{JSON.stringify(payload, null, 2)}</pre>
+)
 
 interface RequestData {
   description: string
   category: string
-  urgency: number
+  urgencyLabel: string
   location: string
   requireCheckIn: boolean
+  parsedItem?: string
+  priceMax?: number | null
 }
 
-const urgencyLabels = ['Now', 'Today', 'This Week']
+const ModelDebugPopup = ({ modelSummary, matches }: { modelSummary: any; matches: SmartPingMatch[] }) => (
+  <div className="space-y-3">
+    <div className="rounded-lg bg-background/60 p-2 text-xs font-sans">
+      <p className="font-semibold text-foreground">
+        {modelSummary?.type ?? 'RandomForestClassifier'} · Artifact {modelSummary?.artifact ?? 'matchmaker_model.joblib'}
+      </p>
+      <p className="text-muted-foreground mt-1">
+        Feature count: {modelSummary?.featureCount ?? '—'} · Positive class index: {modelSummary?.positiveClassIndex ?? '—'}
+      </p>
+    </div>
+    <div className="space-y-2">
+      {matches.slice(0, 5).map((match) => (
+        <div key={match.id} className="rounded-lg border border-border/60 bg-background/70 p-2">
+          <p className="text-xs font-semibold text-foreground">
+            {match.name} · Likelihood {match.likelihood.toFixed(1)}%
+          </p>
+          <ul className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+            {(match.debug?.activatedFeatures ?? []).slice(0, 4).map(([featureName, value], idx) => (
+              <li key={`${match.id}-${featureName}-${idx}`} className="flex items-center justify-between gap-2">
+                <span className="truncate">{featureName}</span>
+                <span className="font-medium text-foreground">{value.toFixed(2)}</span>
+              </li>
+            ))}
+            {(!match.debug?.activatedFeatures || match.debug.activatedFeatures.length === 0) && (
+              <li className="text-muted-foreground/70">No feature activations returned.</li>
+            )}
+          </ul>
+        </div>
+      ))}
+    </div>
+  </div>
+)
+
+const SellerDebugPopup = ({ sellers }: { sellers: SellerDebugEntry[] }) => {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const active = sellers[activeIndex]
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        {sellers.map((seller, idx) => (
+          <Button
+            key={seller.id}
+            size="sm"
+            variant={idx === activeIndex ? 'default' : 'outline'}
+            className="h-7 rounded-full px-3 text-xs"
+            onClick={() => setActiveIndex(idx)}
+          >
+            {seller.name}
+          </Button>
+        ))}
+      </div>
+      {active ? (
+        <div className="space-y-2">
+          <div className="rounded-lg bg-background/60 p-2 text-xs font-sans">
+            <p className="font-semibold text-foreground">
+              {active.name} · Match likelihood {((active.probability ?? 0) * 100).toFixed(1)}%
+            </p>
+            {active.source && <p className="text-muted-foreground mt-1">Source: {active.source}</p>}
+          </div>
+          <div className="rounded-lg border border-border/60 bg-background/70 p-2">
+            <p className="mb-1 text-[11px] font-semibold text-foreground">Top contributing features</p>
+            <ul className="space-y-0.5 text-[11px] text-muted-foreground">
+              {active.features.slice(0, 5).map(([name, value], idx) => (
+                <li key={`${active.id}-ft-${idx}`} className="flex items-center justify-between gap-2">
+                  <span className="truncate">{name}</span>
+                  <span className="font-medium text-foreground">{value.toFixed(2)}</span>
+                </li>
+              ))}
+              {active.features.length === 0 && <li className="text-muted-foreground/70">No feature activations reported.</li>}
+            </ul>
+          </div>
+          <div className="rounded-lg border border-border/60 bg-background/70 p-2 text-[11px]">
+            <p className="font-semibold text-foreground mb-1">Seller profile JSON</p>
+            <pre className="max-h-32 overflow-auto">{JSON.stringify(active.profile, null, 2)}</pre>
+          </div>
+          {active.representativeItem && (
+            <div className="rounded-lg border border-border/60 bg-background/70 p-2 text-[11px]">
+              <p className="font-semibold text-foreground mb-1">Representative item</p>
+              <pre className="max-h-32 overflow-auto">{JSON.stringify(active.representativeItem, null, 2)}</pre>
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">No seller profiles returned.</p>
+      )}
+    </div>
+  )
+}
 
 export function SmartPingMatchesPage() {
   const [searchParams] = useSearchParams()
@@ -62,6 +204,123 @@ export function SmartPingMatchesPage() {
   const summariesRef = useRef<Record<string, ProfileTrustSummary>>({})
   const [historyUserId, setHistoryUserId] = useState<string | null>(null)
   const [messagingUserId, setMessagingUserId] = useState<string | null>(null)
+  const [parsedRequest, setParsedRequest] = useState<any | null>(null)
+  const [debugInfo, setDebugInfo] = useState<any | null>(null)
+  const [showDebugPanel, setShowDebugPanel] = useState(false)
+  const [debugPanelVisible, setDebugPanelVisible] = useState(true)
+  const [debugDockVisible, setDebugDockVisible] = useState(true)
+  const [activeDebugPopupId, setActiveDebugPopupId] = useState<string | null>(null)
+  const [openDebugMatchId, setOpenDebugMatchId] = useState<string | null>(null)
+  const [showPipelineDialog, setShowPipelineDialog] = useState(false)
+  const [openSellerProfileId, setOpenSellerProfileId] = useState<string | null>(null)
+  const [debugPopups, setDebugPopups] = useState<DebugPopupDescriptor[]>([])
+  const lastPopupRequestRef = useRef<string | null>(null)
+
+  const resolveUrgencyLabel = (value?: string | null) => {
+    switch (value) {
+      case 'immediate':
+        return 'Now'
+      case 'high':
+        return 'Today'
+      case 'medium':
+        return 'This Week'
+      case 'low':
+        return 'Flexible'
+      default:
+        return 'This Week'
+    }
+  }
+
+  const formatProbability = (value?: number | null) => {
+    const numeric = typeof value === 'number' ? value : 0
+    return (numeric * 100).toFixed(1)
+  }
+
+  const debugSnapshot = useMemo(() => {
+    if (!debugInfo) return null
+    return {
+      request: parsedRequest,
+      metadata: debugInfo?.requestMetadata,
+      model: debugInfo?.model,
+      matches: matches.slice(0, 5).map((match) => ({
+        userId: match.userId,
+        probability: match.debug?.probability,
+        topFeatures: match.debug?.activatedFeatures?.slice(0, 5),
+      })),
+    }
+  }, [debugInfo, matches, parsedRequest])
+
+  const pipelineSteps = useMemo(() => {
+    const steps: Array<{
+      key: string
+      title: string
+      status: 'Complete' | 'Pending'
+      detail: string
+      payload?: unknown
+    }> = []
+
+    steps.push({
+      key: 'gemini-request',
+      title: 'Gemini parsed flash request',
+      status: debugSnapshot?.request ? 'Complete' : 'Pending',
+      detail: debugSnapshot?.request
+        ? `Schema ${(debugSnapshot.request as any)?.schema_type ?? 'FLASH_REQUEST'} returned from Gemini with ${Object.keys(debugSnapshot.request as Record<string, unknown>).length} top-level fields.`
+        : 'Waiting for Gemini parsing service to return structured data.',
+      payload: debugSnapshot?.request,
+    })
+
+    steps.push({
+      key: 'model-scoring',
+      title: 'Model encoded features & scored matches',
+      status: debugSnapshot?.model ? 'Complete' : 'Pending',
+      detail: debugSnapshot?.model
+        ? `Model ${(debugSnapshot.model as any)?.type ?? 'Unknown'} from ${debugSnapshot.model?.artifact ?? 'matchmaker_model.joblib'} evaluated ${matches.length} sellers (${debugSnapshot.model?.featureCount ?? 'unknown'} features).`
+        : 'Awaiting model prediction results.',
+      payload: debugSnapshot?.model,
+    })
+
+    steps.push({
+      key: 'matches-ready',
+      title: 'Seller profiles ready for review',
+      status: matches.length > 0 ? 'Complete' : 'Pending',
+      detail:
+        matches.length > 0
+          ? `${matches.length} candidate${matches.length === 1 ? '' : 's'} returned. Top likelihood: ${
+              matches[0]?.likelihood ?? 0
+            }%.`
+          : 'No matches available yet.',
+      payload:
+        matches.length > 0
+          ? matches.slice(0, 3).map((match) => ({
+              user: match.userId,
+              likelihood: match.likelihood,
+              distanceMin: match.distance,
+            }))
+          : undefined,
+    })
+
+    return steps
+  }, [debugSnapshot, matches])
+
+  const activeDebugPopup = useMemo(
+    () => debugPopups.find((entry) => entry.id === activeDebugPopupId) ?? null,
+    [activeDebugPopupId, debugPopups],
+  )
+
+  const renderPopupContent = useCallback(
+    (popup: DebugPopupDescriptor): ReactNode => {
+      switch (popup.type) {
+        case 'buyer':
+          return <BuyerDebugPopup payload={popup.payload} />
+        case 'model':
+          return <ModelDebugPopup modelSummary={popup.modelSummary} matches={popup.matches} />
+        case 'sellers':
+        default:
+          return <SellerDebugPopup sellers={popup.sellers} />
+      }
+    },
+    [],
+  )
 
   const ensureSummary = useCallback(async (userId: string) => {
     if (!userId) return
@@ -120,8 +379,25 @@ export function SmartPingMatchesPage() {
     const fetchMatches = async () => {
       try {
         setLoading(true)
+        setDebugPopups([])
         const result = await api.getSmartMatches(requestId)
-        setRequestData(result.requestData)
+        const parsed = result.requestData || {}
+        setParsedRequest(parsed)
+        setDebugInfo(result.debug || null)
+        setDebugPanelVisible(true)
+        setDebugDockVisible(true)
+        setActiveDebugPopupId(null)
+
+        const summary: RequestData = {
+          description: parsed?.context?.original_text || parsed?.item_meta?.parsed_item || '—',
+          category: parsed?.item_meta?.category || '—',
+          urgencyLabel: resolveUrgencyLabel(parsed?.context?.urgency),
+          location: parsed?.location?.text_input || '—',
+          requireCheckIn: Boolean(result?.debug?.requestMetadata?.requireCheckIn),
+          parsedItem: parsed?.item_meta?.parsed_item,
+          priceMax: parsed?.transaction?.price_max ?? null,
+        }
+        setRequestData(summary)
         const mappedMatches: SmartPingMatch[] = result.matches.map((item, index) => ({
           id: item.user.id ?? `${item.user.name}-${index}`,
           userId: item.user.id,
@@ -134,8 +410,11 @@ export function SmartPingMatchesPage() {
           likelihood: item.likelihood,
           badges: item.user.badges ?? [],
           status: null,
+          debug: item.debug,
         }))
         setMatches(mappedMatches)
+        setOpenDebugMatchId(null)
+        setSelectedMatches(new Set())
       } catch (error) {
         toast.error('Failed to load Smart-Ping matches')
         console.error(error)
@@ -146,6 +425,52 @@ export function SmartPingMatchesPage() {
 
     fetchMatches()
   }, [requestId])
+
+  useEffect(() => {
+    if (!debugInfo || !parsedRequest || matches.length === 0) return
+    if (lastPopupRequestRef.current === requestId) return
+
+    const sellerEntries: SellerDebugEntry[] = matches
+      .filter((match) => Boolean(match.debug?.sellerProfile))
+      .map((match) => ({
+        id: match.id,
+        name: match.name,
+        probability: match.debug?.probability,
+        profile: match.debug?.sellerProfile,
+        representativeItem: match.debug?.representativeItem,
+        source: match.debug?.source,
+        features: match.debug?.activatedFeatures ?? [],
+      }))
+
+    const nextPopups: DebugPopupDescriptor[] = [
+      {
+        id: `buyer-${requestId}`,
+        type: 'buyer',
+        title: 'Parsed Buyer Request JSON',
+        payload: parsedRequest,
+      },
+      {
+        id: `model-${requestId}`,
+        type: 'model',
+        title: 'Model Weight Application',
+        modelSummary: debugInfo.model,
+        matches,
+      },
+    ]
+
+    if (sellerEntries.length > 0) {
+      nextPopups.push({
+        id: `sellers-${requestId}`,
+        type: 'sellers',
+        title: 'Seller Profiles Evaluated',
+        sellers: sellerEntries,
+      })
+    }
+
+    setDebugPopups(nextPopups)
+    setDebugDockVisible(true)
+    lastPopupRequestRef.current = requestId
+  }, [debugInfo, parsedRequest, matches, requestId])
 
   useEffect(() => {
     matches.forEach((match) => {
@@ -270,12 +595,68 @@ export function SmartPingMatchesPage() {
   }
 
   return (
-    <motion.div
+    <>
+      <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className="container mx-auto px-4 py-8 max-w-7xl"
     >
+      {debugSnapshot && debugPanelVisible && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mb-6"
+        >
+          <div className="rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-4 md:p-5 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-sm font-semibold text-primary uppercase tracking-wide">Debug Panel</h3>
+                  <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                    {matches.length} match{matches.length === 1 ? '' : 'es'}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Model {debugSnapshot.model?.type ?? 'RandomForest'} · Request {requestId}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span className="hidden md:inline">Parsed item:</span>
+                  <span className="font-medium text-primary">
+                    {requestData.parsedItem || requestData.description || '—'}
+                  </span>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setShowPipelineDialog(true)}>
+                  View Pipeline
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowDebugPanel((prev) => !prev)}>
+                  {showDebugPanel ? 'Hide Details' : 'Show Details'}
+                </Button>
+                <Button size="icon" variant="ghost" className="text-muted-foreground" onClick={() => setDebugPanelVisible(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            {showDebugPanel && (
+              <div className="mt-4 rounded-xl bg-background/70 p-4 text-xs font-mono text-muted-foreground max-h-64 overflow-auto">
+                <pre>{JSON.stringify(debugSnapshot, null, 2)}</pre>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {!debugPanelVisible && debugSnapshot && (
+        <div className="mb-6">
+          <Button size="sm" variant="outline" onClick={() => setDebugPanelVisible(true)}>
+            Show Debug Panel
+          </Button>
+        </div>
+      )}
+
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left Panel - Request Summary */}
         <div className="lg:w-1/3">
@@ -303,7 +684,7 @@ export function SmartPingMatchesPage() {
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <p className="text-base font-medium">
-                      {urgencyLabels[requestData.urgency]}
+                      {requestData.urgencyLabel}
                     </p>
                   </div>
                 </div>
@@ -321,6 +702,13 @@ export function SmartPingMatchesPage() {
                 <div className="flex items-center gap-2">
                   <Shield className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Check-in required</span>
+                </div>
+              )}
+
+              {typeof requestData.priceMax === 'number' && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Tag className="h-4 w-4" />
+                  Budget up to ${requestData.priceMax.toFixed(2)}
                 </div>
               )}
             </div>
@@ -491,6 +879,11 @@ export function SmartPingMatchesPage() {
                                 </button>
                               )}
                             </div>
+                          {match.debug?.source && (
+                            <span className="text-xs text-muted-foreground">
+                              Source: {match.debug.source}
+                            </span>
+                          )}
                           </div>
                         </div>
 
@@ -511,6 +904,71 @@ export function SmartPingMatchesPage() {
                         {getStatusChip(match.status) && (
                           <div className="pt-1">
                             {getStatusChip(match.status)}
+                          </div>
+                        )}
+
+                        {match.debug && (
+                          <div className="flex justify-end">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                if (openDebugMatchId === match.id) {
+                                  setOpenSellerProfileId(null)
+                                } else {
+                                  setOpenSellerProfileId(null)
+                                }
+                                setOpenDebugMatchId((current) => (current === match.id ? null : match.id))
+                              }}
+                            >
+                              {openDebugMatchId === match.id ? 'Hide Debug' : 'Show Debug'}
+                            </Button>
+                          </div>
+                        )}
+
+                        {openDebugMatchId === match.id && match.debug && (
+                          <div className="mt-3 rounded-lg bg-secondary/30 p-3 text-xs text-muted-foreground">
+                            <div className="font-medium text-foreground">
+                              Model probability: {formatProbability(match.debug.probability)}%
+                            </div>
+                            <div className="mt-2 font-medium text-foreground">Top feature signals</div>
+                            <ul className="mt-1 space-y-1">
+                              {(match.debug.activatedFeatures ?? []).slice(0, 5).map(([featureName, value], idx) => (
+                                <li key={`${match.id}-feature-${idx}`}>
+                                  <code className="rounded bg-background/80 px-1 py-0.5">{featureName}</code>
+                                  {typeof value === 'number' && value !== 1 ? <span className="ml-1 text-muted-foreground/80">· {value.toFixed(2)}</span> : null}
+                                </li>
+                              ))}
+                              {(!match.debug.activatedFeatures || match.debug.activatedFeatures.length === 0) && (
+                                <li className="text-muted-foreground/70">No feature activations captured.</li>
+                              )}
+                            </ul>
+                            {match.debug.representativeItem?.item_meta?.parsed_item && (
+                              <div className="mt-2">
+                                <span className="font-medium text-foreground">Representative item:</span>{' '}
+                                {match.debug.representativeItem.item_meta.parsed_item}
+                              </div>
+                            )}
+                            {match.debug.sellerProfile && (
+                              <div className="mt-3 space-y-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    setOpenSellerProfileId((current) => (current === match.id ? null : match.id))
+                                  }}
+                                >
+                                  {openSellerProfileId === match.id ? 'Hide Seller JSON' : 'View Seller JSON'}
+                                </Button>
+                                {openSellerProfileId === match.id && (
+                                  <pre className="max-h-72 overflow-auto rounded-lg bg-background/80 p-3 text-muted-foreground">
+                                    {JSON.stringify(match.debug.sellerProfile, null, 2)}
+                                  </pre>
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -535,6 +993,125 @@ export function SmartPingMatchesPage() {
           onClose={() => setHistoryUserId(null)}
         />
       )}
+      <Dialog open={showPipelineDialog} onOpenChange={setShowPipelineDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Request Processing Pipeline</DialogTitle>
+            <DialogDescription>
+              Quick confirmation that the flash request moved through Gemini parsing, feature encoding, and match scoring.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {pipelineSteps.map((step, idx) => {
+              const badgeClass =
+                step.status === 'Complete'
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200'
+                  : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200'
+              return (
+                <div
+                  key={step.key}
+                  className="rounded-xl border border-border bg-card/70 p-4 shadow-sm space-y-2"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold text-foreground">
+                      {idx + 1}. {step.title}
+                    </div>
+                    <span className={cn('rounded-full px-3 py-1 text-xs font-medium', badgeClass)}>
+                      {step.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{step.detail}</p>
+                  {step.payload ? (
+                    <pre className="max-h-48 overflow-auto rounded-lg bg-background/80 p-3 text-xs font-mono text-muted-foreground">
+                      {JSON.stringify(step.payload, null, 2)}
+                    </pre>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
+    {debugDockVisible && debugPopups.length > 0 && (
+      <div className="fixed bottom-4 right-4 z-40 w-[min(360px,calc(100vw-2rem))]">
+        <div className="rounded-2xl border border-border bg-background/95 p-3 shadow-xl backdrop-blur space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Debug Views
+            </span>
+            <div className="flex items-center gap-1">
+              {!debugPanelVisible && (
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setDebugPanelVisible(true)}>
+                  Show Panel
+                </Button>
+              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-muted-foreground"
+                onClick={() => setDebugDockVisible(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Select a view to open a full-screen debugging workspace.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {debugPopups.map((popup) => (
+              <Button
+                key={popup.id}
+                size="sm"
+                variant={popup.id === activeDebugPopupId ? 'default' : 'outline'}
+                className="h-8 rounded-full px-3 text-xs"
+                onClick={() => setActiveDebugPopupId(popup.id)}
+              >
+                {popup.title}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+    {!debugDockVisible && debugPopups.length > 0 && (
+      <div className="fixed bottom-4 right-4 z-30">
+        <Button
+          size="sm"
+          variant="outline"
+          className="rounded-full shadow-lg"
+          onClick={() => setDebugDockVisible(true)}
+        >
+          Show Debug Views
+        </Button>
+      </div>
+    )}
+    <Dialog open={Boolean(activeDebugPopup)} onOpenChange={(open) => {
+      if (!open) {
+        setActiveDebugPopupId(null)
+      }
+    }}>
+      <DialogContent className="max-w-5xl w-[95vw] h-[85vh] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle>{activeDebugPopup?.title}</DialogTitle>
+          {activeDebugPopup?.type === 'buyer' && (
+            <DialogDescription>Structured buyer request returned from Gemini.</DialogDescription>
+          )}
+          {activeDebugPopup?.type === 'model' && (
+            <DialogDescription>Model metadata and top-weighted features used to score matches.</DialogDescription>
+          )}
+          {activeDebugPopup?.type === 'sellers' && (
+            <DialogDescription>Seller profiles and representative items evaluated for the request.</DialogDescription>
+          )}
+        </DialogHeader>
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full overflow-auto rounded-xl border border-border/60 bg-muted/20 p-4 text-xs text-muted-foreground">
+            {activeDebugPopup ? renderPopupContent(activeDebugPopup) : null}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }
