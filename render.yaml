@@ -15,14 +15,10 @@ services:
         value: 3.11.0
       - key: MONGODB_URI
         sync: false # Set this in Render dashboard or via CLI
-      - key: DB_NAME
-        value: flashrequest
-      - key: JWT_SECRET
+      - key: SECRET_KEY
         generateValue: true # Render will auto-generate a secure secret
       - key: GEMINI_SERVICE_URL
-        sync: false # Set this after deploying Gemini service
-      - key: ENVIRONMENT
-        value: production
+        value: http://localhost:3002 # Optional: set after deploying Gemini service
       - key: CORS_ALLOW_ORIGINS
         sync: false # Set to your frontend URL (e.g., https://aiatl-frontend.onrender.com)
     autoDeploy: true # Auto-deploy on git push
