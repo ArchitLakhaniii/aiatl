@@ -16,8 +16,6 @@ import joblib
 import numpy as np
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, EmailStr
 from bson import ObjectId
@@ -31,7 +29,7 @@ from .models import (
 from .auth import hash_password, verify_password, create_access_token, verify_token
 
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = Path(__file__).resolve().parent
 MODEL_PATH = ROOT_DIR / "MLmodel" / "matchmaker_model.joblib"
 COLUMNS_PATH = ROOT_DIR / "MLmodel" / "model_columns.json"
 SYNTHETIC_DATA_DIR = ROOT_DIR / "synthetic-data"
@@ -2760,54 +2758,6 @@ async def seed_default_profiles() -> Dict[str, Any]:
     }
 
 
-# Serve static files and frontend
-# This must be at the end, after all API routes
-
-DIST_DIR = ROOT_DIR / "dist"
-if DIST_DIR.exists():
-    # Mount static files for assets (JS, CSS, images, etc.)
-    assets_dir = DIST_DIR / "assets"
-    if assets_dir.exists():
-        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
-    
-    # Serve root index.html
-    @app.get("/")
-    async def serve_index():
-        """Serve the React app index.html for root route."""
-        return FileResponse(str(DIST_DIR / "index.html"))
-    
-    # Catch-all route for all other paths (must be last)
-    # This handles React Router client-side routing
-    @app.get("/{full_path:path}")
-    async def serve_frontend(full_path: str):
-        """
-        Serve the React frontend for all routes except API routes.
-        This allows React Router to handle client-side routing.
-        Note: The "/" route is handled separately above, so full_path will never be empty here.
-        """
-        # Don't serve frontend for API routes or health check
-        # These are already handled by specific routes above (FastAPI matches more specific routes first)
-        if full_path.startswith("api/") or full_path == "health":
-            raise HTTPException(status_code=404, detail="Not Found")
-        
-        # Skip empty path (shouldn't happen due to "/" route above, but safety check)
-        if not full_path:
-            return FileResponse(str(DIST_DIR / "index.html"))
-        
-        # Check if it's a static file request (has file extension)
-        last_segment = full_path.split("/")[-1]
-        if "." in last_segment:
-            # Try to serve the file if it exists
-            file_path = DIST_DIR / full_path
-            if file_path.exists() and file_path.is_file():
-                return FileResponse(str(file_path))
-        
-        # For all other routes (like /login, /profile, /messages/123, etc.)
-        # Serve index.html - React Router will handle client-side routing
-        return FileResponse(str(DIST_DIR / "index.html"))
-else:
-    # If dist directory doesn't exist, log a warning
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.warning(f"Frontend dist directory not found at {DIST_DIR}. Frontend will not be served.")
+# Note: Frontend is deployed separately, so we don't serve static files here
+# All routes are API routes. The frontend will make requests to /api/* endpoints.
 

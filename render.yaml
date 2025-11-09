@@ -1,13 +1,12 @@
-# Render.com configuration for Full-Stack App (Frontend + Backend)
-# This serves both the React frontend and FastAPI backend from one service
-# Uses Dockerfile for building both frontend and backend
+# Render.com configuration for separate Frontend and Backend deployments
 # https://render.com/
 
 services:
+  # Backend API Service
   - type: web
     name: aiatl-backend
-    dockerfilePath: Dockerfile.render
-    dockerContext: .
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
     region: oregon # Choose: oregon, frankfurt, singapore
     plan: free # Options: free, starter ($7), standard ($25)
     healthCheckPath: /health
@@ -24,4 +23,18 @@ services:
         sync: false # Set this after deploying Gemini service
       - key: ENVIRONMENT
         value: production
+      - key: CORS_ALLOW_ORIGINS
+        sync: false # Set to your frontend URL (e.g., https://aiatl-frontend.onrender.com)
+    autoDeploy: true # Auto-deploy on git push
+
+  # Frontend Service
+  - type: web
+    name: aiatl-frontend
+    dockerfilePath: frontend/Dockerfile
+    dockerContext: frontend
+    region: oregon # Choose: oregon, frankfurt, singapore
+    plan: free # Options: free, starter ($7), standard ($25)
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false # Set to your backend URL (e.g., https://aiatl-backend.onrender.com)
     autoDeploy: true # Auto-deploy on git push
