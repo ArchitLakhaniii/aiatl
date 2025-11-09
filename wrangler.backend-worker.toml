@@ -1,0 +1,21 @@
+name = "aiatl-backend-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+workers_dev = true
+
+# Node.js compatibility
+node_compat = true
+
+[vars]
+ENVIRONMENT = "production"
+
+# Secrets to set via: wrangler secret put SECRET_NAME
+# Required secrets:
+# - MONGODB_URI: Your MongoDB connection string
+# - JWT_SECRET: Secret for JWT tokens
+# - GEMINI_SERVICE_URL: URL of Gemini Worker
+
+[observability]
+enabled = true
+
+limits = { cpu_ms = 50000 }

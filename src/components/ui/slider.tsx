@@ -23,8 +23,8 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
       onValueChange?.([newValue])
     }
 
-    const max = props.max || 100
-    const min = props.min || 0
+    const max = Number(props.max) || 100
+    const min = Number(props.min) || 0
     const percentage = ((internalValue - min) / (max - min)) * 100
 
     return (

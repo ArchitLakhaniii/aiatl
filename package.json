@@ -11,10 +11,11 @@
     "dev:backend": "uvicorn backend.app:app --reload --port 8000",
     "deploy": "./deploy-cloudflare.sh",
     "deploy:gemini": "wrangler deploy --config wrangler.gemini.toml",
-    "deploy:backend": "wrangler deploy --config wrangler.backend.toml",
+    "deploy:backend-worker": "cd cloudflare-backend && npm install && npm run deploy && cd ..",
     "deploy:frontend": "npm run build && wrangler pages deploy dist --project-name=aiatl-frontend",
+    "deploy:all": "npm run deploy:gemini && npm run deploy:backend-worker && npm run deploy:frontend",
     "logs:gemini": "wrangler tail --config wrangler.gemini.toml",
-    "logs:backend": "wrangler tail --config wrangler.backend.toml"
+    "logs:backend": "wrangler tail --config wrangler.backend-worker.toml"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",

@@ -330,7 +330,7 @@ export function FlashRequestWizardPage() {
           <div className="flex items-start gap-3 rounded-xl border border-black/10 bg-white/70 p-4 shadow-inner dark:border-white/10 dark:bg-zinc-900/70">
             <Checkbox
               checked={requireCheckIn}
-              onCheckedChange={(checked) =>
+              onCheckedChange={(checked: boolean) =>
                 setValue('requireCheckIn', Boolean(checked), { shouldDirty: true, shouldValidate: true })
               }
               id="check-in"

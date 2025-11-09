@@ -310,7 +310,7 @@ export const api = {
     }
   },
 
-  updateProfile: async (userId: string, data: Partial<CampusUser>): Promise<{ success: boolean }> => {
+  updateProfile: async (_userId: string, _data: Partial<CampusUser>): Promise<{ success: boolean }> => {
     await new Promise((resolve) => setTimeout(resolve, 500))
     return { success: true }
   },
@@ -348,7 +348,7 @@ export const api = {
   getListings: async (filters: any) => api.searchListings(filters),
   pingMatches: async (requestId: string, matchIds: string[], broadcastType?: 'narrow' | 'wide') => 
     api.sendPings(requestId, matchIds, broadcastType),
-  submitRating: async (threadId: string, rating: number, comment: string): Promise<{ success: boolean }> => {
+  submitRating: async (_threadId: string, _rating: number, _comment: string): Promise<{ success: boolean }> => {
     await new Promise((resolve) => setTimeout(resolve, 500))
     return { success: true }
   },

@@ -1,17 +1,14 @@
 import { motion } from 'framer-motion'
 import { 
   Shield, 
-  Mail, 
   Lock, 
   Bot, 
-  Users, 
   MapPin, 
   CheckCircle2, 
   AlertTriangle,
   FileText,
   Ban
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
