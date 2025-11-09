@@ -20,13 +20,13 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, EmailStr
 from bson import ObjectId
 
-from .feature_encoder import FeatureEncoder
-from .database import connect_db, close_db, get_db
-from .models import (
+from feature_encoder import FeatureEncoder
+from database import connect_db, close_db, get_db
+from models import (
     UserSchema, UserCreate, UserResponse, SellerProfileSchema,
     SalesHistorySummary
 )
-from .auth import hash_password, verify_password, create_access_token, verify_token
+from auth import hash_password, verify_password, create_access_token, verify_token
 
 
 ROOT_DIR = Path(__file__).resolve().parent
