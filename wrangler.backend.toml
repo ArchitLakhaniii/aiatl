@@ -1,0 +1,42 @@
+# Cloudflare Workers configuration for Python FastAPI backend
+name = "aiatl-backend"
+main = "backend/worker.py"
+compatibility_date = "2024-11-01"
+
+# Python Worker configuration
+[build]
+command = "pip install -r requirements.txt -t ./backend/vendor"
+
+[build.upload]
+format = "python"
+
+# Environment variables (set these via Wrangler CLI or dashboard)
+[vars]
+ENVIRONMENT = "production"
+# MONGODB_URI will be set as a secret
+# DB_NAME will be set as a secret
+
+# Secrets (set via: wrangler secret put MONGODB_URI)
+# Required secrets:
+# - MONGODB_URI: Your MongoDB connection string
+# - DB_NAME: Your database name (default: flashrequest)
+# - JWT_SECRET: Secret key for JWT tokens
+
+# Routes configuration
+routes = [
+  { pattern = "*/api/*", zone_name = "your-domain.com" }
+]
+
+# Alternatively, use a custom domain
+# routes = [
+#   { pattern = "api.your-domain.com/*" }
+# ]
+
+# Or use a workers.dev subdomain (for testing)
+# workers_dev = true
+
+[observability]
+enabled = true
+
+# Limits
+limits = { cpu_ms = 50000 }

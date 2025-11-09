@@ -9,6 +9,18 @@ build/
 # Environment variables
 .env
 .env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+backend/vendor/
 
 # Logs
 *.log
@@ -26,6 +38,11 @@ coverage/
 .eslintcache
 .parcel-cache/
 .pnpm-store/
+
+# Cloudflare
+.wrangler/
+.dev.vars
+wrangler.toml.local
 
 # Editors and OS
 .DS_Store
