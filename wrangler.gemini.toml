@@ -3,25 +3,25 @@ name = "aiatl-gemini-service"
 main = "json-parsing-gemini/src/worker.ts"
 compatibility_date = "2024-11-01"
 
+# Enable workers.dev subdomain for initial deployment
+workers_dev = true
+
 # TypeScript/JavaScript Worker
-[build]
-command = "cd json-parsing-gemini && npm install && npm run build"
+# Note: Build is handled separately via npm
+# Run: cd json-parsing-gemini && npm install && npm run build
 
 # Environment variables
 [vars]
 ENVIRONMENT = "production"
 
-# Secrets (set via: wrangler secret put GEMINI_API_KEY)
+# Secrets (set via: wrangler secret put GEMINI_API_KEY --config wrangler.gemini.toml)
 # Required secrets:
 # - GEMINI_API_KEY: Your Google Gemini API key
 
-# Routes configuration
-routes = [
-  { pattern = "*/gemini/*", zone_name = "your-domain.com" }
-]
-
-# Or use a workers.dev subdomain for testing
-# workers_dev = true
+# For custom domain deployment, uncomment and configure:
+# routes = [
+#   { pattern = "gemini.your-domain.com/*", zone_name = "your-domain.com" }
+# ]
 
 [observability]
 enabled = true

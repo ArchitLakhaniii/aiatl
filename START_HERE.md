@@ -1,52 +1,128 @@
-# 🚀 START HERE - Run Flash Request in Your Browser
+# 🚀 START HERE - AIATL Setup & Deployment
 
-## ⚡ Quick Start (3 Steps)
+## 📋 What You Need to Do
 
-### 1. Open PowerShell in this folder
+Your application is **configured for Cloudflare deployment**! Here's what to do next:
 
-### 2. Run this command:
-```powershell
-.\start-all.ps1
+### Option A: Deploy to Cloud (Recommended for Production)
+👉 **Follow this path if you want to deploy online**
+
+1. **Install Wrangler** (Cloudflare CLI):
+   ```bash
+   npm install -g wrangler
+   ```
+
+2. **Setup environment**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your credentials (MongoDB, Gemini API key, etc.)
+   ```
+
+3. **Deploy**:
+   ```bash
+   wrangler login
+   ./deploy-cloudflare.sh
+   ```
+
+📖 **Detailed guides**: `QUICK_DEPLOY.md` (5 min) or `CLOUDFLARE_DEPLOYMENT.md` (complete)
+
+### Option B: Run Locally (Development)
+👉 **Follow this if you want to test on your machine first**
+
+#### Prerequisites
+- Node.js 20+
+- Python 3.11+
+- MongoDB connection string
+
+#### Quick Local Setup
+
+1. **Install dependencies**:
+   ```bash
+   npm install
+   cd json-parsing-gemini && npm install && cd ..
+   pip install -r requirements.txt
+   ```
+
+2. **Configure environment**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your MongoDB URI and Gemini API key
+   ```
+
+3. **Start all services**:
+   ```bash
+   # Terminal 1 - Frontend
+   npm run dev
+
+   # Terminal 2 - Backend
+   npm run dev:backend
+
+   # Terminal 3 - Gemini Service
+   cd json-parsing-gemini && npm run dev
+   ```
+
+4. **Open browser**:
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:8000/docs
+   - Gemini Service: http://localhost:3001
+
+## 🎯 What's Been Set Up
+
+✅ **Frontend**: React + Vite + TypeScript → Cloudflare Pages
+✅ **Backend**: FastAPI + Python → Render.com/Railway (recommended)
+✅ **AI Service**: Gemini Worker → Cloudflare Workers
+✅ **Database**: MongoDB Atlas (you need to create account)
+✅ **Deployment Scripts**: Automated deployment
+✅ **Documentation**: Complete guides created
+
+## 📚 Documentation Guide
+
+- **New user?** Start with `DEPLOYMENT_SUMMARY.md`
+- **Quick deploy?** Read `QUICK_DEPLOY.md` (5 minutes)
+- **Need details?** Read `CLOUDFLARE_DEPLOYMENT.md` (complete)
+- **Checklist?** Follow `DEPLOYMENT_CHECKLIST.md`
+- **Wrangler issues?** See `WRANGLER_FIX.md`
+
+## � Required Credentials
+
+Before deploying, get these (all have free tiers):
+
+1. **MongoDB Atlas** - [Sign up](https://www.mongodb.com/cloud/atlas)
+2. **Google Gemini API** - [Get key](https://makersuite.google.com/app/apikey)
+3. **Cloudflare Account** - [Sign up](https://cloudflare.com)
+4. **Render.com** (for backend) - [Sign up](https://render.com)
+
+## ⚡ Quickest Path to Deploy
+
+```bash
+# 1. Install Wrangler
+npm install -g wrangler
+
+# 2. Setup
+cp .env.example .env
+# Edit .env with your credentials
+
+# 3. Deploy
+wrangler login
+./deploy-cloudflare.sh
 ```
 
-### 3. Open your browser:
-```
-http://localhost:5173
-```
+## 💡 What's Different Now?
 
-**That's it!** The app is now running in your browser.
+Your app was configured for local Windows PowerShell. **Now it's configured for cloud deployment**:
 
-## 📖 What Happens
+- ✨ Global CDN via Cloudflare
+- ✨ Serverless architecture
+- ✨ Auto-scaling
+- ✨ Free tier available ($0/month)
+- ✨ Production-ready ($69/month)
 
-The script will:
-1. ✅ Install all dependencies automatically
-2. ✅ Start 3 services (Gemini, Backend, Frontend)
-3. ✅ Open 3 terminal windows (one for each service)
-4. ✅ Show you the URLs to access everything
+## 🆘 Need Help?
 
-## 🎯 First Steps
-
-1. **Click "Login / Sign Up"** on the homepage
-2. **Register a new user** with:
-   - Your name and email
-   - Location (e.g., "Boston, MA")
-   - Bio (describe what you like to buy/sell)
-3. **View your profile** to see your AI-generated seller profile
-4. **Explore the app!**
-
-## 🐛 Problems?
-
-### Script won't run?
-- Make sure you're in the project folder
-- Right-click PowerShell and "Run as Administrator"
-
-### Services won't start?
-- Check if ports 3001, 8000, or 5173 are already in use
-- Close other applications using those ports
-
-### Can't register user?
-- Make sure all 3 services are running
-- Check your internet connection (needed for MongoDB)
+- **"wrangler not found"** → Run `npm install -g wrangler`
+- **"Not authenticated"** → Run `wrangler login`
+- **"Need credentials"** → Edit `.env` file with your keys
+- **Other issues** → Check `CLOUDFLARE_DEPLOYMENT.md` troubleshooting section
 
 ## 📚 More Help
 
