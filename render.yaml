@@ -1,15 +1,15 @@
-# Render.com configuration for Backend API
-# This is the recommended way to deploy the Python FastAPI backend
+# Render.com configuration for Full-Stack App (Frontend + Backend)
+# This serves both the React frontend and FastAPI backend from one service
+# Uses Dockerfile for building both frontend and backend
 # https://render.com/
 
 services:
   - type: web
     name: aiatl-backend
-    env: python
+    dockerfilePath: Dockerfile.render
+    dockerContext: .
     region: oregon # Choose: oregon, frankfurt, singapore
     plan: free # Options: free, starter ($7), standard ($25)
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
