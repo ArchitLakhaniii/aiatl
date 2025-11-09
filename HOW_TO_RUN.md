@@ -1,4 +1,27 @@
-# 🚀 How to Run Flash Request in Your Browser
+# 🚀 How to Run Your AIATL App Locally
+
+## ✅ YOUR SERVER IS NOW RUNNING!
+
+Access your app at: **http://localhost:8000**
+
+---
+
+## 📋 Quick Summary
+
+### Your Run Command:
+```bash
+source venv/bin/activate
+uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### What's Working:
+- ✅ Python virtual environment created
+- ✅ All dependencies installed (including scikit-learn)
+- ✅ Backend server running on port 8000
+- ✅ Frontend served from backend
+- ✅ Auto-reload enabled
+
+---
 
 ## ✅ Quick Start (Easiest Way)
 

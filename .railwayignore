@@ -1,0 +1,3 @@
+# .railway.toml
+# This file is deprecated in favor of railway.json
+# Railway will automatically detect the correct configuration

@@ -51,7 +51,6 @@ export function Blob({ className, colorClassName = 'from-indigo-500/30 via-blue-
         repeat: Infinity,
         ease: 'linear'
       }}
-      {...props}
     />
   )
 }

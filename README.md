@@ -4,9 +4,14 @@ A modern marketplace platform for buying and selling items within campus communi
 
 ## 🚀 Quick Links
 
-- **[Start Here](./DEPLOYMENT_SUMMARY.md)** - Overview of deployment setup
+### Deployment Options
+- **[Railway (Recommended)](./RAILWAY_QUICKSTART.md)** - Deploy in 5 minutes with one command! 🚂
+- **[Cloudflare Workers](./CLOUDFLARE_QUICK_START.md)** - Serverless deployment
+- **[Complete Deployment Guide](./DEPLOYMENT_SUMMARY.md)** - All deployment options
+
+### Documentation
 - **[Quick Deploy (5 min)](./QUICK_DEPLOY.md)** - Fast deployment guide
-- **[Complete Guide](./CLOUDFLARE_DEPLOYMENT.md)** - Detailed deployment instructions
+- **[Complete Guide](./CLOUDFLARE_DEPLOYMENT.md)** - Detailed instructions
 - **[Deployment Checklist](./DEPLOYMENT_CHECKLIST.md)** - Step-by-step verification
 
 ## 📋 Features
